@@ -1,0 +1,262 @@
+-- DROP USER PROD_SCHEMA CASCADE;
+
+ALTER SESSION SET "_ORACLE_SCRIPT" = TRUE;  
+CREATE USER PROD_SCHEMA IDENTIFIED BY 1234;
+GRANT ALL PRIVILEGES TO PROD_SCHEMA;
+
+CREATE TABLE PROD_SCHEMA.EmployeeRole (
+    RoleID INT NOT NULL PRIMARY KEY,
+    RoleName VARCHAR(55) NOT NULL
+);
+
+CREATE TABLE PROD_SCHEMA.EmployeeType (
+    EmployeeTypeID INT NOT NULL PRIMARY KEY,
+    EmployeeTypeName VARCHAR(55) NOT NULL,
+    EmployeeTypeDescription VARCHAR(1000) NOT NULL
+);
+
+CREATE TABLE PROD_SCHEMA.HistoryType (
+    HistoryTypeID INT NOT NULL PRIMARY KEY,
+    HistoryTypeDescription VARCHAR(255) NOT NULL,
+    HistoryTypeOtherInfo VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE PROD_SCHEMA.TaskType (
+    TaskTypeID INT NOT NULL PRIMARY KEY,
+    TaskTypeDescription VARCHAR(255) NOT NULL,
+    TaskTypeOtherInfo VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE PROD_SCHEMA.Task (
+    TaskID INT NOT NULL PRIMARY KEY,
+    TaskTypeID INT NOT NULL,
+    TaskName VARCHAR(255) NOT NULL,
+    TaskDescription VARCHAR(3000) NOT NULL,
+    DateFinish DATE NOT NULL,
+    FOREIGN KEY (TaskTypeID) REFERENCES PROD_SCHEMA.TaskType(TaskTypeID)
+);
+
+CREATE TABLE PROD_SCHEMA.Investor (
+    InvestorID INT NOT NULL PRIMARY KEY,
+    InvestorFirstName VARCHAR(255) NOT NULL,
+    InvestorSecondName VARCHAR(255) NOT NULL,
+    InvestorContactInformation VARCHAR(3000) NOT NULL
+);
+
+CREATE TABLE PROD_SCHEMA.Company (
+    CompanyID INT NOT NULL PRIMARY KEY,
+    CompanyName VARCHAR(255) NOT NULL,
+    CompanyDescription VARCHAR(3000) NOT NULL,
+    CompanyAddress VARCHAR (1000) NOT NULL,
+    CompanyContactInformation VARCHAR (1000) NOT NULL,
+    CompanyNumber VARCHAR(15) NOT NULL
+);
+
+CREATE TABLE PROD_SCHEMA.Investment (
+    InvestmentID INT NOT NULL PRIMARY KEY,
+    CompanyID INT NOT NULL,
+    InvestorID INT NOT NULL,
+    InvestmentSum INT NOT NULL,
+    FOREIGN KEY (CompanyID) REFERENCES PROD_SCHEMA.Company(CompanyID),
+    FOREIGN KEY (InvestorID) REFERENCES PROD_SCHEMA.Investor(InvestorID)
+);
+
+CREATE TABLE PROD_SCHEMA.Department (
+    DepartmentID INT NOT NULL PRIMARY KEY,
+    CompanyID INT NOT NULL,
+    DepartmentName VARCHAR(255) NOT NULL,
+    DepartmentDescription VARCHAR(3000) NOT NULL,
+    FOREIGN KEY (CompanyID) REFERENCES PROD_SCHEMA.Company(CompanyID)
+);
+
+CREATE TABLE PROD_SCHEMA.Clients (
+    ClientID INT NOT NULL PRIMARY KEY,
+    ClientName VARCHAR(255) NOT NULL,
+    ClientContactInformation VARCHAR(3000) NOT NULL,
+    ClientAge INT NOT NULL
+);
+
+CREATE TABLE PROD_SCHEMA.OrderClient (
+    OrderClientID INT NOT NULL PRIMARY KEY,
+    ProjectID INT NOT NULL,
+    ClientID INT NOT NULL,
+    OrderClientName VARCHAR(255) NOT NULL,
+    OrderClientDescription VARCHAR(3000) NOT NULL,
+    OrderClientPrice INT NOT NULL,
+    OrderClientDate DATE NOT NULL,
+    FOREIGN KEY (ClientID) REFERENCES PROD_SCHEMA.Clients(ClientID)
+    -- FOREIGN KEY (ProjectID) REFERENCES PROD_SCHEMA.Project(ProjectID)
+);
+
+-- ALTER TABLE OrderClient
+-- ADD FOREIGN KEY (ProjectID) REFERENCES Project(ProjectID);
+
+CREATE TABLE PROD_SCHEMA.Project (
+    ProjectID INT NOT NULL PRIMARY KEY,
+    CompanyID INT NOT NULL,
+    ClientID INT NOT NULL,
+    ProjectName VARCHAR(255) NOT NULL,
+    ProjectDescription VARCHAR(3000) NOT NULL,
+    DateStart DATE NOT NULL,
+    DateFinish DATE NOT NULL,
+    FOREIGN KEY (CompanyID) REFERENCES PROD_SCHEMA.Company(CompanyID),
+    FOREIGN KEY (ClientID) REFERENCES PROD_SCHEMA.Clients(ClientID)
+);
+
+
+CREATE TABLE PROD_SCHEMA.Employee (
+    EmployeeID INT NOT NULL PRIMARY KEY,
+    EmployeeTypeID INT NOT NULL,
+    EmployeeRoleID INT NOT NULL,
+    DepartmentID INT NOT NULL,
+    CompanyID INT NOT NULL,
+    EmployeeFirstName VARCHAR(255) NOT NULL,
+    EmployeeSecondName VARCHAR(255) NOT NULL,
+    EmployeeSalary INT NOT NULL,
+    EmployeeContactInformation VARCHAR(3000) NOT NULL,
+    Login VARCHAR(255) NOT NULL,
+    Pass VARCHAR(255) NOT NULL,
+    FOREIGN KEY (EmployeeTypeID) REFERENCES PROD_SCHEMA.EmployeeType(EmployeeTypeID),
+    FOREIGN KEY (EmployeeRoleID) REFERENCES PROD_SCHEMA.EmployeeRole(RoleID),
+    FOREIGN KEY (CompanyID) REFERENCES PROD_SCHEMA.Company(CompanyID),
+    FOREIGN KEY (DepartmentID) REFERENCES PROD_SCHEMA.Department(DepartmentID)
+);
+
+CREATE TABLE PROD_SCHEMA.EmployeeTask (
+    EmployeeID INT NOT NULL,
+    TaskID INT NOT NULL,
+    FOREIGN KEY (EmployeeID) REFERENCES PROD_SCHEMA.Employee(EmployeeID),
+    FOREIGN KEY (TaskID) REFERENCES PROD_SCHEMA.Task(TaskID),
+    PRIMARY KEY (EmployeeID, TaskID)
+);
+
+CREATE TABLE PROD_SCHEMA.EmployeeTaskHistory (
+    HistoryID INT NOT NULL PRIMARY KEY,
+    EmployeeID INT NOT NULL,
+    TaskID INT NOT NULL,
+    HistoryTypeID INT NOT NULL,
+    FOREIGN KEY (TaskID) REFERENCES PROD_SCHEMA.Task(TaskID),
+    FOREIGN KEY (EmployeeID) REFERENCES PROD_SCHEMA.Employee(EmployeeID),
+    FOREIGN KEY (HistoryTypeID) REFERENCES PROD_SCHEMA.HistoryType(HistoryTypeID)
+);
+
+CREATE TABLE PROD_SCHEMA.MyTable
+(
+    Id NUMBER(10) GENERATED BY DEFAULT ON NULL AS IDENTITY,
+    Val NUMBER(10),
+    ImportantField VARCHAR(10),
+    CONSTRAINT id_pk PRIMARY KEY (Id),
+    CONSTRAINT chk_val2 CHECK (Val > 10) 
+)
+/
+CREATE OR REPLACE PROCEDURE PROD_SCHEMA.insertMyTable(new_val IN NUMBER) IS
+BEGIN
+    INSERT INTO PROD_SCHEMA.MyTable (Val) VALUES(new_val);
+END;
+-- CREATE OR REPLACE PROCEDURE PROD_SCHEMA.updateMyTable(mod_id IN NUMBER, new_val IN NUMBER) IS
+-- BEGIN
+--     UPDATE PROD_SCHEMA.MyTable SET Val = new_val WHERE Id = mod_id;
+-- END;
+
+-- CREATE OR REPLACE PROCEDURE PROD_SCHEMA.deleteMyTable(del_id IN NUMBER) IS
+-- BEGIN
+--     DELETE FROM PROD_SCHEMA.MyTable WHERE Id=del_id;
+-- END;
+
+CREATE OR REPLACE FUNCTION PROD_SCHEMA.getReward(salary IN NUMBER, percent in number) RETURN DOUBLE PRECISION
+IS
+    ret DOUBLE PRECISION;
+BEGIN
+    IF (salary < 0) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Salary cannot be negative.');
+    END IF;
+    
+    IF (percent < 0) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Percent cannot be negative.');
+    END IF;
+    
+    ret := ( 1 + percent ) * 12 * salary;
+    
+    RETURN ret;
+END;
+/
+CREATE UNIQUE INDEX PROD_SCHEMA.indx_department_name ON PROD_SCHEMA.Department(lower(DepartmentName));
+-- CREATE UNIQUE INDEX PROD_SCHEMA.indx_client_name ON PROD_SCHEMA.Clients(ClientName);
+
+-- CREATE UNIQUE INDEX PROD_SCHEMA.indx_company_name ON PROD_SCHEMA.Company(lower(CompanyName));
+
+
+CREATE TABLE PROD_SCHEMA.tst_c1(
+    id NUMBER PRIMARY KEY, 
+    id1 NUMBER
+)
+/
+CREATE TABLE PROD_SCHEMA.tst_c2(
+    id NUMBER PRIMARY KEY, 
+    id2 NUMBER, 
+    FOREIGN KEY (id2) REFERENCES PROD_SCHEMA.tst_c1(id)
+);
+DROP TABLE PROD_SCHEMA.tst_c2;
+DROP TABLE PROD_SCHEMA.tst_c1;
+
+
+ALTER TABLE PROD_SCHEMA.tst_c1 ADD CONSTRAINT fk_c2_id FOREIGN KEY (id1) REFERENCES PROD_SCHEMA.tst_c2(id);
+alter table PROD_SCHEMA.tst_c1 drop CONSTRAINT fk_c2_id
+
+
+
+-- Additional task
+-- CREATE OR REPLACE PROCEDURE PROD_SCHEMA.i_dont_pass(del_id IN NUMBER) IS
+-- BEGIN
+--     DELETE FROM PROD_SCHEMA.MyTable WHERE id=del_id;
+-- END;
+
+-- DROP FUNCTION PROD_SCHEMA.getreward1;
+
+-- CREATE OR REPLACE NONEDITIONABLE FUNCTION "PROD_SCHEMA"."GETREWARD1" (salary in number, percent in number)
+-- return double precision
+-- is
+--     ret double precision;
+-- begin
+--     if (salary < 0) then
+--         raise_application_error(-20001, 'Salary cannot be negative.');
+--     end if;
+
+--     if (percent < 0) then
+--         raise_application_error(-20001, 'Percent cannot be negative.');
+--     end if;
+
+--     ret := ( 1 + percent ) * 12 * salary;
+
+--     return ret;
+-- end;
+
+
+-- CREATE TABLE PROD_SCHEMA.NewTable (
+--     NewID INT NOT NULL PRIMARY KEY,
+--     NewValue VARCHAR(255) NOT NULL
+-- )
+
+
+-- Создание индекса на столбце NewValue
+-- CREATE INDEX PROD_SCHEMA.indx_new_value ON PROD_SCHEMA.NewTable(NewValue)
+/
+
+-- Пакет для схемы PROD_SCHEMA
+CREATE OR REPLACE PACKAGE PROD_SCHEMA.EmployeeManagement AS
+    PROCEDURE AddEmployee(
+        p_EmployeeTypeID IN INT,
+        p_EmployeeRoleID IN INT,
+        p_DepartmentID IN INT,
+        p_CompanyID IN INT,
+        p_FirstName IN VARCHAR2,
+        p_SecondName IN VARCHAR2,
+        p_Salary IN INT,
+        p_ContactInfo IN VARCHAR2
+    );
+
+    FUNCTION GetEmployeeSalary(
+        p_EmployeeID IN INT
+    ) RETURN INT;
+END EmployeeManagement;
+/
